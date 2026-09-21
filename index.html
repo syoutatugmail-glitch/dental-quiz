@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>歯科国試 今日の問題</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:"Yu Gothic","Hiragino Sans","Meiryo",sans-serif;margin:0;padding:0 14px 60px;
+color:#1d2733;line-height:1.75;background:#fff;-webkit-text-size-adjust:100%}
+.wrap{max-width:720px;margin:0 auto}
+header{padding:16px 0 10px;border-bottom:2px solid #eef2f7;margin-bottom:16px}
+.prog{font-size:13px;color:#6b7b8d}
+.bar{height:5px;background:#eef2f7;border-radius:3px;margin-top:8px;overflow:hidden}
+.bar>i{display:block;height:100%;background:#2a6aaa;transition:width .3s}
+.tag{display:inline-block;font-size:12px;font-weight:700;color:#2a6aaa;background:#eaf1f9;
+border-radius:4px;padding:2px 8px;margin-bottom:8px}
+.q{font-size:18px;font-weight:700;margin:6px 0 16px}
+.ch{display:block;width:100%;text-align:left;font:inherit;background:#fff;border:2px solid #d7e0ea;
+border-radius:10px;padding:13px 14px;margin:9px 0;cursor:pointer}
+.ch:active{background:#f4f8fc}
+.ch.sel{border-color:#2a6aaa;background:#eaf1f9}
+.ch.ok{border-color:#1f8a54;background:#e9f7ef}
+.ch.ng{border-color:#c0392b;background:#fdeeec}
+.ch .l{font-weight:700;margin-right:8px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:14px 18px;cursor:pointer}
+.primary{background:#2a6aaa;color:#fff;width:100%;font-size:17px;margin-top:14px}
+.primary[disabled]{background:#b9c6d4}
+.conf{display:flex;gap:10px;margin-top:14px}
+.conf .btn{flex:1;background:#eef2f7;color:#1d2733;font-size:16px}
+.verdict{font-size:22px;font-weight:800;margin:18px 0 6px}
+.ok-t{color:#1f8a54}.ng-t{color:#c0392b}
+.key{background:#fff8e1;border-left:5px solid #e8b100;padding:11px 14px;margin:12px 0;border-radius:0 8px 8px 0}
+.src{font-size:13px;color:#6b7b8d;margin:10px 0}
+.warn{background:#fdeeec;border-left:5px solid #c0392b;padding:10px 14px;margin:12px 0;font-size:14px;border-radius:0 8px 8px 0}
+.exp{border-top:2px solid #eef2f7;margin-top:20px;padding-top:6px;font-size:15px}
+.exp h3,.exp h4,.exp h5,.exp h6{color:#1a3550;margin:18px 0 6px;font-size:16px;
+border-left:4px solid #2a6aaa;padding-left:8px}
+.exp table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px;display:block;overflow-x:auto}
+.exp td{border:1px solid #d7e0ea;padding:7px 9px;vertical-align:top}
+.exp tr:first-child td{background:#f4f8fc;font-weight:700}
+.exp blockquote{margin:10px 0;padding:8px 12px;background:#f7f9fc;border-left:4px solid #b9c6d4}
+.exp code{background:#f2f5f8;padding:1px 5px;border-radius:4px;font-size:13px}
+.exp pre{background:#f7f9fc;border:1px solid #e3e9f0;border-radius:6px;padding:10px 12px;
+overflow-x:auto;font-size:12px;line-height:1.5;white-space:pre}
+.exp hr{border:0;border-top:1px solid #eef2f7;margin:16px 0}
+.foot{border-top:2px solid #eef2f7;margin-top:24px;padding-top:14px}
+.lbl{font-size:14px;font-weight:700;color:#6b7b8d;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:14px;background:#eef2f7;border:2px solid #eef2f7;color:#1d2733;
+border-radius:20px;padding:8px 15px;cursor:pointer}
+.chip.on{background:#2a6aaa;border-color:#2a6aaa;color:#fff}
+.muted{font-size:13px;color:#8b9aab}
+.done{text-align:center;padding:40px 0}
+.done h2{color:#1a3550}
+.score{font-size:40px;font-weight:800;color:#2a6aaa;margin:10px 0}
+.msg{padding:20px 0}
+.msg h2{color:#1a3550}
+.loading{padding:40px 0;text-align:center;color:#8b9aab}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="prog" id="prog">読み込み中…</div><div class="bar"><i id="bar"></i></div></header>
+  <div id="app"><div class="loading">問題を読み込んでいます…</div></div>
+</div>
+<script>
+/*
+ * 歯科国試 選択式クイズ — 静的フロントエンド（GitHub Pages 等に配置）
+ * 2026-09-21 新設（根本対策）。
+ *
+ * これまで画面そのものを Google Apps Script（script.google.com）で描画していたが、
+ * 複数の Google アカウントでログイン中のブラウザからそのページを直接開くと
+ * 「アクセス権をリクエスト」の画面に化けることがあった（Google 側の挙動）。
+ * この画面は「そのページへ丸ごと遷移したとき」にだけ出る。<script src> でデータを
+ * 部品として読み込む分には出ないため、画面の実体はここ（GAS と無関係な場所）に置き、
+ * データの出し入れだけを GAS に JSONP で依頼する形にした。
+ *
+ * 使い方: このファイルを GitHub Pages などで公開し、下の GAS_API_URL を
+ * デプロイ済みの GAS ウェブアプリの exec URL に置き換える。
+ * メールのリンクは「このページの URL + ?s=セッションID&t=トークン」になる
+ * （cloud/Quiz.gs の QUIZ_SITE_URL をこのページの URL に設定すると自動でそうなる）。
+ */
+var GAS_API_URL = "https://script.google.com/macros/s/AKfycbyiEnfogn6eAvCk5hwZU89JDb4OfPoGz7rhfPMU7FjDdXkJn5S7SlpjDtAE8TFNrV0d/exec"; // ← cloud/Quiz.gs をデプロイしたときの exec URL に置き換える
+
+var qs = new URLSearchParams(location.search);
+var SID = qs.get('s') || '', TOKEN = qs.get('t') || '';
+var DATA = null;
+var idx = 0, sel = [], phase = 'choose', nCorrect = 0, nDone = 0, saving = false;
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function need(it) { var m = /([1-5])\s*つ選べ/.exec(it.question); return m ? parseInt(m[1], 10) : it.answer.length; }
+
+// ---------------------------------------------------------------- JSONP
+var _cbSeq = 0;
+function jsonp(params, callback, timeoutMs) {
+  var name = '_dkcb' + Date.now() + '_' + (_cbSeq++);
+  var qsArr = [];
+  for (var k in params) {
+    if (!Object.prototype.hasOwnProperty.call(params, k)) continue;
+    if (params[k] === undefined || params[k] === null) continue;
+    qsArr.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));
+  }
+  qsArr.push('cb=' + name);
+
+  var script = document.createElement('script');
+  var done = false;
+  var timer = setTimeout(function () {
+    if (done) return; done = true;
+    cleanup();
+    callback({ ok: false, title: '通信に失敗しました', msg: 'しばらくしてからもう一度お試しください。' });
+  }, timeoutMs || 20000);
+
+  function cleanup() {
+    clearTimeout(timer);
+    delete window[name];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+  window[name] = function (data) {
+    if (done) return; done = true;
+    cleanup();
+    callback(data);
+  };
+  script.onerror = function () {
+    if (done) return; done = true;
+    cleanup();
+    callback({ ok: false, title: '通信に失敗しました', msg: 'しばらくしてからもう一度お試しください。' });
+  };
+  script.src = GAS_API_URL + (GAS_API_URL.indexOf('?') >= 0 ? '&' : '?') + qsArr.join('&');
+  document.body.appendChild(script);
+}
+
+// ---------------------------------------------------------------- 起動
+function boot() {
+  if (!SID || !TOKEN) {
+    showMessage('リンクが正しくありません', 'メールに書かれたリンクから開いてください。');
+    return;
+  }
+  jsonp({ s: SID, t: TOKEN }, function (data) {
+    if (!data || data.ok === false) {
+      showMessage((data && data.title) || '読み込めませんでした', (data && data.msg) || '');
+      return;
+    }
+    DATA = data;
+    render();
+  });
+}
+
+function showMessage(title, msg) {
+  document.getElementById('prog').textContent = '';
+  document.getElementById('bar').style.width = '0%';
+  document.getElementById('app').innerHTML =
+    '<div class="msg"><h2>' + esc(title) + '</h2><p>' + esc(msg) + '</p></div>';
+}
+
+// ---------------------------------------------------------------- 画面
+function render() {
+  var app = document.getElementById('app');
+  if (idx >= DATA.items.length) { finish(); return; }
+  var it = DATA.items[idx];
+  document.getElementById('prog').textContent = (idx + 1) + ' / ' + DATA.items.length + '問';
+  document.getElementById('bar').style.width = Math.round(idx / DATA.items.length * 100) + '%';
+  var h = '<div class="tag">' + esc(it.tag) + '</div><div class="q">' + esc(it.question) + '</div>';
+  for (var i = 0; i < it.choices.length; i++) {
+    var l = it.choices[i][0], t = it.choices[i][1], cls = 'ch';
+    if (phase === 'choose' && sel.indexOf(l) >= 0) cls += ' sel';
+    if (phase === 'result') {
+      if (it.answer.indexOf(l) >= 0) cls += ' ok';
+      else if (sel.indexOf(l) >= 0) cls += ' ng';
+    }
+    h += '<button class="' + cls + '" data-l="' + l + '" onclick="pick(this)">'
+       + '<span class="l">' + l + '</span>' + esc(t) + '</button>';
+  }
+  if (phase === 'choose') {
+    h += '<div class="muted" id="hint"></div>';
+    h += '<button class="primary" id="go" onclick="toConf()">決定</button>';
+  } else if (phase === 'conf') {
+    h += '<div class="lbl" style="margin-top:18px">どれくらい自信がありますか？</div>';
+    h += '<div class="conf"><button class="btn" onclick="answer(\'high\')">自信あり</button>';
+    h += '<button class="btn" onclick="answer(\'low\')">あいまい</button></div>';
+  } else {
+    h += resultHtml(it);
+  }
+  app.innerHTML = h;
+  if (phase === 'choose') updateHint();
+  window.scrollTo(0, 0);
+}
+
+function pick(b) {
+  if (phase !== 'choose') return;
+  var l = b.getAttribute('data-l'), i = sel.indexOf(l);
+  var it = DATA.items[idx], n = need(it);
+  if (i >= 0) sel.splice(i, 1);
+  else { if (n === 1) sel = [l]; else if (sel.length < n) sel.push(l); else return; }
+  render();
+}
+
+function updateHint() {
+  var it = DATA.items[idx], n = need(it);
+  var hint = document.getElementById('hint'), go = document.getElementById('go');
+  if (!hint || !go) return;
+  hint.textContent = n > 1 ? ('あと ' + Math.max(0, n - sel.length) + ' つ選べます（' + n + 'つ選ぶ問題）') : '';
+  go.disabled = (sel.length !== n);
+}
+
+function toConf() { if (sel.length === 0) return; phase = 'conf'; render(); }
+
+function answer(conf) {
+  if (saving) return; saving = true;
+  var it = DATA.items[idx];
+  it._conf = conf;
+  it._correct = (sel.slice().sort().join(',') === it.answer.slice().sort().join(','));
+  it._sel = sel.slice();
+  if (it._correct) nCorrect++;
+  nDone++;
+  phase = 'result'; render(); saving = false;
+  submitAnswer(it, conf, '', false);
+}
+
+function submitAnswer(it, conf, err, doubtFlag) {
+  jsonp({
+    action: 'record', s: SID, t: TOKEN, qid: it.qid,
+    chosen: it._sel.join(','), confidence: conf || '', errorType: err || '',
+    doubt: doubtFlag ? '1' : '0'
+  }, function (r) {
+    var el = document.getElementById('saved');
+    if (!el) return;
+    el.textContent = (r && r.ok) ? (r.msg || '記録しました') : ('記録できませんでした：' + ((r && r.msg) || ''));
+  });
+}
+
+function resultHtml(it) {
+  var names = [];
+  for (var i = 0; i < it.choices.length; i++) if (it.answer.indexOf(it.choices[i][0]) >= 0)
+    names.push(it.choices[i][0] + ' ' + it.choices[i][1]);
+  var h = '<div class="verdict ' + (it._correct ? 'ok-t' : 'ng-t') + '">'
+        + (it._correct ? '正解' : '不正解') + (it._conf === 'low' ? '（自信なし）' : '') + '</div>';
+  h += '<div class="key"><b>正答</b>　' + esc(names.join(' ／ ')) + '</div>';
+  if (it.source) h += '<div class="src">出典：' + esc(it.source) + '</div>';
+  if (it.flags && it.flags.length) {
+    h += '<div class="warn"><b>⚠ 要確認</b><br>' + esc(it.flags.join(' ／ ')) + '</div>';
+  }
+  h += '<div class="exp">' + it.explainHtml + '</div>';
+  h += '<div class="foot">';
+  if (!it._correct) {
+    h += '<div class="lbl">なぜ間違えましたか？（任意・1タップ）</div><div class="chips">';
+    var ts = ['知識不足', '混同', '誤読', '過信'];
+    for (var k = 0; k < ts.length; k++) h += '<button class="chip" onclick="mark(this,\'' + ts[k] + '\')">' + ts[k] + '</button>';
+    h += '</div>';
+  }
+  h += '<div class="chips" style="margin-top:12px">'
+     + '<button class="chip" onclick="doubt(this)">この解説に疑義あり</button></div>';
+  h += '<div class="muted" id="saved" style="margin-top:12px">記録中…</div>';
+  h += '<button class="primary" onclick="next()">'
+     + (idx + 1 >= DATA.items.length ? '結果を見る' : '次の問題へ') + '</button></div>';
+  return h;
+}
+
+function mark(b, t) {
+  var c = b.parentNode.getElementsByTagName('button');
+  for (var i = 0; i < c.length; i++) c[i].className = 'chip';
+  b.className = 'chip on';
+  var it = DATA.items[idx]; it._err = t;
+  submitAnswer(it, it._conf, t, !!it._doubt);
+}
+
+function doubt(b) {
+  b.className = 'chip on';
+  var it = DATA.items[idx]; it._doubt = true;
+  submitAnswer(it, it._conf, it._err || '', true);
+}
+
+function next() { idx++; sel = []; phase = 'choose'; render(); }
+
+function finish() {
+  document.getElementById('prog').textContent = 'おつかれさまでした';
+  document.getElementById('bar').style.width = '100%';
+  document.getElementById('app').innerHTML =
+    '<div class="done"><h2>今日のぶんは終わりです</h2>'
+    + '<div class="score">' + nCorrect + ' / ' + nDone + '</div>'
+    + '<p class="muted">間違えた問題は明日また出ます。<br>'
+    + '正解でも「あいまい」を選んだ問題は、短い間隔で戻ってきます。</p></div>';
+}
+
+boot();
+</script>
+</body>
+</html>
