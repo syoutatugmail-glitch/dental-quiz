@@ -33,6 +33,13 @@ border-radius:10px;padding:13px 14px;margin:9px 0;cursor:pointer}
 .key{background:#fff8e1;border-left:5px solid #e8b100;padding:11px 14px;margin:12px 0;border-radius:0 8px 8px 0}
 .src{font-size:13px;color:#6b7b8d;margin:10px 0}
 .warn{background:#fdeeec;border-left:5px solid #c0392b;padding:10px 14px;margin:12px 0;font-size:14px;border-radius:0 8px 8px 0}
+.pts{background:#eef9f0;border-left:5px solid #1f8a54;padding:11px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-size:14px}
+.pts>b{display:block;margin-bottom:6px;color:#1f8a54;font-size:14px}
+.pts p{margin:4px 0}
+.pts ul{margin:4px 0;padding-left:20px}
+.pts li{margin:2px 0}
+.fb{background:#eaf1f9;border-radius:8px;padding:10px 13px;margin-top:12px;font-size:14px;font-weight:700;color:#1a3550}
+.dd{background:#f3ecfb;border-left:5px solid #8b5fbf;padding:9px 13px;margin-top:8px;font-size:13px;border-radius:0 8px 8px 0}
 .exp{border-top:2px solid #eef2f7;margin-top:20px;padding-top:6px;font-size:15px}
 .exp h3,.exp h4,.exp h5,.exp h6{color:#1a3550;margin:18px 0 6px;font-size:16px;
 border-left:4px solid #2a6aaa;padding-left:8px}
@@ -224,8 +231,14 @@ function submitAnswer(it, conf, err, doubtFlag) {
     doubt: doubtFlag ? '1' : '0'
   }, function (r) {
     var el = document.getElementById('saved');
-    if (!el) return;
-    el.textContent = (r && r.ok) ? (r.msg || '記録しました') : ('記録できませんでした：' + ((r && r.msg) || ''));
+    if (el) el.textContent = (r && r.ok) ? (r.msg || '記録しました') : ('記録できませんでした：' + ((r && r.msg) || ''));
+    if (r && r.deepdive) {
+      var dd = document.getElementById('dd');
+      if (dd) {
+        dd.textContent = '🔍 この問題は深掘りキューに登録されました（次回セッションで関連知識を追記します）';
+        dd.style.display = 'block';
+      }
+    }
   });
 }
 
@@ -240,6 +253,9 @@ function resultHtml(it) {
   if (it.flags && it.flags.length) {
     h += '<div class="warn"><b>⚠ 要確認</b><br>' + esc(it.flags.join(' ／ ')) + '</div>';
   }
+  if (it.keyPointsHtml) {
+    h += '<div class="pts"><b>💡 覚えておきたい要点</b>' + it.keyPointsHtml + '</div>';
+  }
   h += '<div class="exp">' + it.explainHtml + '</div>';
   h += '<div class="foot">';
   if (!it._correct) {
@@ -250,7 +266,8 @@ function resultHtml(it) {
   }
   h += '<div class="chips" style="margin-top:12px">'
      + '<button class="chip" onclick="doubt(this)">この解説に疑義あり</button></div>';
-  h += '<div class="muted" id="saved" style="margin-top:12px">記録中…</div>';
+  h += '<div class="fb" id="saved">記録中…</div>';
+  h += '<div class="dd" id="dd" style="display:none"></div>';
   h += '<button class="primary" onclick="next()">'
      + (idx + 1 >= DATA.items.length ? '結果を見る' : '次の問題へ') + '</button></div>';
   return h;
